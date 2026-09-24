@@ -2,31 +2,44 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { TitleBar } from './components/TitleBar';
 import { Sidebar } from './components/Sidebar';
 import { CommandBar } from './components/CommandBar';
-import { ContactCard } from './components/ContactCard';
-import { DetailCardView } from './components/DetailCardView';
-import { ContactTableView } from './components/ContactTableView';
-import { ContactFormModal } from './components/ContactFormModal';
-import { DeleteDialog } from './components/DeleteDialog';
 import { InfoBar, ToastNotice } from './components/InfoBar';
+import {
+  BulkActionBar,
+  ContactCard,
+  DetailCardView,
+  ContactTableView,
+  ContactFormModal,
+  DeleteDialog,
+  ContactQRCodeModal,
+} from './components/contacts';
+import { BookmarkModule } from './components/bookmarks';
 import { Contact, ViewMode, SortField } from './types/contact';
 import {
   getContacts,
   createContact,
   updateContact,
   deleteContact,
+  bulkDeleteContacts,
+  bulkUpdateCategory,
+  bulkToggleFavorite,
   toggleFavorite,
   getDatabaseStats,
+  getBookmarkStats,
   exportSqliteBinary,
   importSqliteBinary,
   resetDatabaseToDefault,
 } from './services/db';
+import { downloadMultipleVCardsFile } from './utils/vcard';
 import { Users, UserPlus, ArrowLeft } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 export default function App() {
+  const [activeModule, setActiveModule] = useState<'contacts' | 'bookmarks'>('contacts');
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [bookmarkCategory, setBookmarkCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortField, setSortField] = useState<SortField>('name_asc');
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
@@ -42,6 +55,8 @@ export default function App() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
+  const [isBulkDeleting, setIsBulkDeleting] = useState<boolean>(false);
+  const [qrModalContact, setQrModalContact] = useState<Contact | null>(null);
 
   // Database stats state
   const [dbStats, setDbStats] = useState({
@@ -51,6 +66,12 @@ export default function App() {
     activities: 0,
     byteSize: 0,
     sqliteVersion: '3.x',
+  });
+
+  const [bookmarkStats, setBookmarkStats] = useState({
+    total: 0,
+    favorites: 0,
+    categoryCounts: {} as Record<string, number>,
   });
 
   // Toasts
@@ -81,12 +102,14 @@ export default function App() {
   // Load contacts and stats from SQLite
   const refreshData = useCallback(async () => {
     try {
-      const [list, stats] = await Promise.all([
+      const [list, stats, bStats] = await Promise.all([
         getContacts(activeCategory, searchQuery, sortField),
         getDatabaseStats(),
+        getBookmarkStats(),
       ]);
       setContacts(list);
       setDbStats(stats);
+      setBookmarkStats(bStats);
       if (list.length > 0 && !selectedContactId) {
         // default select first if in split mode
         if (viewMode === 'split') {
@@ -118,6 +141,93 @@ export default function App() {
     });
     return counts;
   }, [contacts]);
+
+  // Multi-selection state helpers
+  const areAllSelectedFavorites = useMemo(() => {
+    if (selectedContactIds.size === 0) return false;
+    const selectedList = contacts.filter((c) => selectedContactIds.has(c.id));
+    return selectedList.length > 0 && selectedList.every((c) => c.is_favorite === 1);
+  }, [contacts, selectedContactIds]);
+
+  const handleToggleSelect = (contact: Contact) => {
+    setSelectedContactIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(contact.id)) {
+        next.delete(contact.id);
+      } else {
+        next.add(contact.id);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (contacts.length === 0) return;
+    if (selectedContactIds.size === contacts.length) {
+      setSelectedContactIds(new Set());
+    } else {
+      setSelectedContactIds(new Set(contacts.map((c) => c.id)));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedContactIds(new Set());
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedContactIds.size === 0) return;
+    const count = selectedContactIds.size;
+    try {
+      await bulkDeleteContacts(Array.from(selectedContactIds));
+      addToast('info', `Deleted ${count} ${count === 1 ? 'contact' : 'contacts'}`);
+      if (selectedContactId && selectedContactIds.has(selectedContactId)) {
+        setSelectedContactId(null);
+      }
+      setSelectedContactIds(new Set());
+      setIsBulkDeleting(false);
+      await refreshData();
+    } catch (err: any) {
+      addToast('error', `Failed to delete contacts: ${err.message}`);
+    }
+  };
+
+  const handleBulkMoveCategory = async (category: string) => {
+    if (selectedContactIds.size === 0) return;
+    const count = selectedContactIds.size;
+    try {
+      await bulkUpdateCategory(Array.from(selectedContactIds), category);
+      addToast('success', `Moved ${count} ${count === 1 ? 'contact' : 'contacts'} to ${category}`);
+      setSelectedContactIds(new Set());
+      await refreshData();
+    } catch (err: any) {
+      addToast('error', `Failed to move contacts: ${err.message}`);
+    }
+  };
+
+  const handleBulkToggleFavorite = async () => {
+    if (selectedContactIds.size === 0) return;
+    const count = selectedContactIds.size;
+    const nextFavState = !areAllSelectedFavorites;
+    try {
+      await bulkToggleFavorite(Array.from(selectedContactIds), nextFavState);
+      addToast(
+        'info',
+        nextFavState
+          ? `Added ${count} ${count === 1 ? 'contact' : 'contacts'} to Favorites`
+          : `Removed ${count} ${count === 1 ? 'contact' : 'contacts'} from Favorites`
+      );
+      await refreshData();
+    } catch (err: any) {
+      addToast('error', `Failed to update favorites: ${err.message}`);
+    }
+  };
+
+  const handleBulkExport = () => {
+    const selectedList = contacts.filter((c) => selectedContactIds.has(c.id));
+    if (!selectedList.length) return;
+    downloadMultipleVCardsFile(selectedList, `contacts_export_${selectedList.length}_selected.vcf`);
+    addToast('success', `Exported ${selectedList.length} contacts (.vcf)`);
+  };
 
   // Handlers
   const handleSaveContact = async (contactData: any) => {
@@ -207,6 +317,20 @@ export default function App() {
         return;
       }
 
+      // Escape key to clear multi-selection
+      if (e.key === 'Escape' && selectedContactIds.size > 0) {
+        e.preventDefault();
+        setSelectedContactIds(new Set());
+        return;
+      }
+
+      // Ctrl+A / Cmd+A to select all visible contacts
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A') && contacts.length > 0) {
+        e.preventDefault();
+        setSelectedContactIds(new Set(contacts.map((c) => c.id)));
+        return;
+      }
+
       if ((e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         setEditingContact(null);
@@ -216,7 +340,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [selectedContactIds, contacts]);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#f4f5f7] dark:bg-[#1a1a1a] text-[#18181b] dark:text-[#f4f4f5]">
@@ -226,7 +350,13 @@ export default function App() {
         onToggleDarkMode={() => setDarkMode(!darkMode)}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        activeModule={activeModule}
+        onSelectModule={(mod) => {
+          setActiveModule(mod);
+          setSearchQuery('');
+        }}
         contactCount={dbStats.total}
+        bookmarkCount={bookmarkStats.total}
       />
 
       {/* Main Workspace Frame */}
@@ -235,23 +365,47 @@ export default function App() {
         <Sidebar
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          activeCategory={activeCategory}
+          activeCategory={activeModule === 'contacts' ? activeCategory : bookmarkCategory}
           onSelectCategory={(cat) => {
-            setActiveCategory(cat);
-            setSelectedContactId(null);
+            if (activeModule === 'contacts') {
+              setActiveCategory(cat);
+              setSelectedContactId(null);
+              setSelectedContactIds(new Set());
+            } else {
+              setBookmarkCategory(cat);
+            }
           }}
           onQuickAdd={() => {
-            setEditingContact(null);
-            setIsFormModalOpen(true);
+            if (activeModule === 'contacts') {
+              setEditingContact(null);
+              setIsFormModalOpen(true);
+            } else {
+              window.dispatchEvent(new CustomEvent('fluent:new-bookmark'));
+            }
           }}
           totalContacts={dbStats.total}
           favoriteCount={dbStats.favorites}
           categoryCounts={categoryCounts}
+          activeModule={activeModule}
+          onSelectModule={(mod) => {
+            setActiveModule(mod);
+            setSearchQuery('');
+          }}
+          bookmarkStats={bookmarkStats}
         />
 
         {/* 3. Main Center Content Pane */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#f4f5f7] dark:bg-[#1a1a1a]">
-          {/* Windows Fluent CommandBar */}
+          {activeModule === 'bookmarks' ? (
+            <BookmarkModule
+              searchQuery={searchQuery}
+              activeCategory={bookmarkCategory}
+              onCategorySelect={setBookmarkCategory}
+              onShowInfoBar={(msg, type) => addToast(type || 'info', msg)}
+            />
+          ) : (
+            <>
+              {/* Windows Fluent CommandBar */}
           <CommandBar
             onNewContact={() => {
               setEditingContact(null);
@@ -274,6 +428,11 @@ export default function App() {
                 handleToggleFavorite(null, selectedContact);
               }
             }}
+            onShowQrContact={() => {
+              if (selectedContact) {
+                setQrModalContact(selectedContact);
+              }
+            }}
             viewMode={viewMode}
             onChangeViewMode={setViewMode}
             sortField={sortField}
@@ -281,7 +440,27 @@ export default function App() {
             onExportSqlite={handleExportSqlite}
             onImportSqlite={handleImportSqlite}
             onResetData={handleResetData}
+            isMultiSelectActive={selectedContactIds.size > 0}
+            onToggleSelectAll={handleToggleSelectAll}
           />
+
+          {/* Contextual Bulk Action Bar */}
+          <AnimatePresence>
+            {selectedContactIds.size > 0 && (
+              <BulkActionBar
+                selectedCount={selectedContactIds.size}
+                totalVisibleCount={contacts.length}
+                allSelected={contacts.length > 0 && selectedContactIds.size === contacts.length}
+                onToggleSelectAll={handleToggleSelectAll}
+                onClearSelection={handleClearSelection}
+                onBulkDelete={() => setIsBulkDeleting(true)}
+                onBulkMoveCategory={handleBulkMoveCategory}
+                onBulkToggleFavorite={handleBulkToggleFavorite}
+                areAllFavorites={areAllSelectedFavorites}
+                onBulkExport={handleBulkExport}
+              />
+            )}
+          </AnimatePresence>
 
           {/* View Content Area with Fluid Transitions */}
           <div className="flex-1 flex min-h-0 overflow-hidden relative">
@@ -330,9 +509,13 @@ export default function App() {
               <ContactTableView
                 contacts={contacts}
                 selectedContactId={selectedContactId}
+                selectedContactIds={selectedContactIds}
+                allSelected={contacts.length > 0 && selectedContactIds.size === contacts.length}
                 onSelectContact={(c) => {
                   setSelectedContactId(c.id);
                 }}
+                onToggleSelect={(c) => handleToggleSelect(c)}
+                onToggleSelectAll={handleToggleSelectAll}
                 onToggleFavorite={handleToggleFavorite}
                 onEditContact={(c) => {
                   setEditingContact(c);
@@ -342,6 +525,7 @@ export default function App() {
                   const target = contacts.find((c) => c.id === id);
                   if (target) setContactToDelete(target);
                 }}
+                onShowQr={(c) => setQrModalContact(c)}
               />
             ) : viewMode === 'split' ? (
               /* 2. Split Master-Detail View */
@@ -356,8 +540,12 @@ export default function App() {
                       key={c.id}
                       contact={c}
                       isSelected={selectedContactId === c.id}
+                      isMultiSelected={selectedContactIds.has(c.id)}
+                      isMultiSelectActive={selectedContactIds.size > 0}
                       onSelect={(item) => setSelectedContactId(item.id)}
+                      onToggleSelect={(item) => handleToggleSelect(item)}
                       onToggleFavorite={handleToggleFavorite}
+                      onShowQr={(e, item) => setQrModalContact(item)}
                     />
                   ))}
                 </div>
@@ -375,6 +563,7 @@ export default function App() {
                         setContactToDelete(selectedContact);
                       }}
                       onToggleFavorite={(id, curr) => handleToggleFavorite(null, selectedContact)}
+                      onShowQr={(c) => setQrModalContact(c)}
                       onContactUpdated={(updated) => {
                         refreshData();
                       }}
@@ -396,10 +585,14 @@ export default function App() {
                         key={c.id}
                         contact={c}
                         isSelected={selectedContactId === c.id}
+                        isMultiSelected={selectedContactIds.has(c.id)}
+                        isMultiSelectActive={selectedContactIds.size > 0}
                         onSelect={(item) => {
                           setSelectedContactId(item.id);
                         }}
+                        onToggleSelect={(item) => handleToggleSelect(item)}
                         onToggleFavorite={handleToggleFavorite}
+                        onShowQr={(e, item) => setQrModalContact(item)}
                       />
                     ))}
                   </div>
@@ -427,6 +620,7 @@ export default function App() {
                             setContactToDelete(selectedContact);
                           }}
                           onToggleFavorite={(id, curr) => handleToggleFavorite(null, selectedContact)}
+                          onShowQr={(c) => setQrModalContact(c)}
                           onContactUpdated={(updated) => {
                             refreshData();
                           }}
@@ -460,6 +654,7 @@ export default function App() {
                           setContactToDelete(selectedContact);
                         }}
                         onToggleFavorite={(id, curr) => handleToggleFavorite(null, selectedContact)}
+                        onShowQr={(c) => setQrModalContact(c)}
                         onContactUpdated={(updated) => {
                           refreshData();
                         }}
@@ -470,6 +665,8 @@ export default function App() {
               </div>
             )}
           </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -486,10 +683,21 @@ export default function App() {
 
       {/* Delete Confirmation Dialog */}
       <DeleteDialog
-        isOpen={Boolean(contactToDelete)}
+        isOpen={Boolean(contactToDelete) || isBulkDeleting}
         contactName={contactToDelete?.display_name || ''}
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setContactToDelete(null)}
+        count={isBulkDeleting ? selectedContactIds.size : 1}
+        onConfirm={isBulkDeleting ? handleBulkDeleteConfirm : handleDeleteConfirm}
+        onCancel={() => {
+          setContactToDelete(null);
+          setIsBulkDeleting(false);
+        }}
+      />
+
+      {/* Contact QR Code Share & Mobile Scan Modal */}
+      <ContactQRCodeModal
+        isOpen={Boolean(qrModalContact)}
+        contact={qrModalContact}
+        onClose={() => setQrModalContact(null)}
       />
 
       {/* InfoBar Status Notifications */}

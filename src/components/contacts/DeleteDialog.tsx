@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'motion/react';
 
 interface DeleteDialogProps {
   isOpen: boolean;
-  contactName: string;
+  contactName?: string;
+  count?: number;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -12,10 +13,13 @@ interface DeleteDialogProps {
 export const DeleteDialog: React.FC<DeleteDialogProps> = ({
   isOpen,
   contactName,
+  count = 1,
   onConfirm,
   onCancel,
 }) => {
   if (!isOpen) return null;
+
+  const isBulk = count > 1;
 
   return (
     <AnimatePresence>
@@ -28,16 +32,24 @@ export const DeleteDialog: React.FC<DeleteDialogProps> = ({
           className="w-full max-w-sm bg-white dark:bg-[#2c2c2c] rounded-xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden"
         >
           <div className="p-5 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 mt-0.5">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[#18181b] dark:text-[#f4f4f5]">
-                  Delete contact?
+                  {isBulk ? `Delete ${count} contacts?` : 'Delete contact?'}
                 </h3>
-                <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1 leading-relaxed">
-                  Are you sure you want to delete <span className="font-semibold text-[#18181b] dark:text-white">"{contactName}"</span>? This action cannot be undone.
+                <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1.5 leading-relaxed">
+                  {isBulk ? (
+                    <>
+                      Are you sure you want to permanently delete <span className="font-semibold text-[#18181b] dark:text-white">{count} selected contacts</span>? All associated notes and activity logs will also be deleted.
+                    </>
+                  ) : (
+                    <>
+                      Are you sure you want to delete <span className="font-semibold text-[#18181b] dark:text-white">"{contactName}"</span>? This action cannot be undone.
+                    </>
+                  )}
                 </p>
               </div>
             </div>
@@ -54,7 +66,7 @@ export const DeleteDialog: React.FC<DeleteDialogProps> = ({
               onClick={onConfirm}
               className="px-3.5 py-1.5 text-xs font-semibold rounded-md bg-[#dc2626] text-white hover:bg-[#b91c1c] transition-all shadow-xs active:scale-95"
             >
-              Delete
+              {isBulk ? `Delete (${count})` : 'Delete'}
             </button>
           </div>
         </motion.div>

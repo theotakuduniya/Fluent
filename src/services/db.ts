@@ -1,6 +1,7 @@
 import initSqlJs from 'sql.js/dist/sql-asm.js';
 import type { Database } from 'sql.js';
 import { Contact, ActivityLog, SqlQueryResult, SortField } from '../types/contact';
+import { Bookmark, BookmarkSortField } from '../types/bookmark';
 
 const DB_STORAGE_KEY = 'fluent_contacts_sqlite_db';
 const IDB_NAME = 'FluentContactsDB';
@@ -299,6 +300,113 @@ const SEED_ACTIVITY: Partial<ActivityLog>[] = [
   }
 ];
 
+const SEED_BOOKMARKS: Partial<Bookmark>[] = [
+  {
+    id: 'bm-fluent-design',
+    title: 'Fluent 2 Design System',
+    url: 'https://fluent2.microsoft.design',
+    description: 'Microsoft Fluent 2 design language guidelines, tokens, and components for Windows 11 & cross-platform apps.',
+    category: 'Design',
+    tags: ['design', 'fluent', 'microsoft', 'ui-kit'],
+    favicon: 'https://www.google.com/s2/favicons?domain=microsoft.design&sz=64',
+    is_favorite: 1,
+    click_count: 24,
+    created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: 'bm-win-app-sdk',
+    title: 'Windows App SDK & WinUI 3',
+    url: 'https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/',
+    description: 'Build modern desktop Windows 11 applications with WinUI 3 controls, Mica, Acrylic, and native APIs.',
+    category: 'Development',
+    tags: ['windows11', 'winui', 'desktop', 'sdk'],
+    favicon: 'https://www.google.com/s2/favicons?domain=learn.microsoft.com&sz=64',
+    is_favorite: 1,
+    click_count: 18,
+    created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+  },
+  {
+    id: 'bm-sqlite-wasm',
+    title: 'SQLite Wasm Documentation',
+    url: 'https://sqlite.org/wasm/doc/trunk/index.md',
+    description: 'High-performance in-memory and persistent relational database engine running client-side in WebAssembly.',
+    category: 'Development',
+    tags: ['sqlite', 'database', 'wasm', 'sql'],
+    favicon: 'https://www.google.com/s2/favicons?domain=sqlite.org&sz=64',
+    is_favorite: 1,
+    click_count: 31,
+    created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+  },
+  {
+    id: 'bm-lucide-icons',
+    title: 'Lucide Icons Directory',
+    url: 'https://lucide.dev/icons/',
+    description: 'Beautiful & consistent open-source icon suite for modern user interfaces and Windows 11 Fluent style.',
+    category: 'Design',
+    tags: ['icons', 'svg', 'design', 'lucide'],
+    favicon: 'https://www.google.com/s2/favicons?domain=lucide.dev&sz=64',
+    is_favorite: 0,
+    click_count: 14,
+    created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: 'bm-tailwind-css',
+    title: 'Tailwind CSS Documentation',
+    url: 'https://tailwindcss.com/docs',
+    description: 'A utility-first CSS framework packed with classes that can be composed to build any design.',
+    category: 'Tools',
+    tags: ['css', 'frontend', 'styling', 'framework'],
+    favicon: 'https://www.google.com/s2/favicons?domain=tailwindcss.com&sz=64',
+    is_favorite: 0,
+    click_count: 9,
+    created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: 'bm-typescript-handbook',
+    title: 'TypeScript Handbook',
+    url: 'https://www.typescriptlang.org/docs/handbook/intro.html',
+    description: 'Comprehensive guide to TypeScript syntax, compiler options, type checking, and modern best practices.',
+    category: 'Reading',
+    tags: ['typescript', 'javascript', 'handbook', 'docs'],
+    favicon: 'https://www.google.com/s2/favicons?domain=typescriptlang.org&sz=64',
+    is_favorite: 0,
+    click_count: 12,
+    created_at: new Date(Date.now() - 86400000 * 14).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+  },
+  {
+    id: 'bm-github',
+    title: 'GitHub Repositories',
+    url: 'https://github.com',
+    description: 'World leading developer platform to build, collaborate, and deliver open-source software.',
+    category: 'Work',
+    tags: ['git', 'code', 'collaboration', 'devtools'],
+    favicon: 'https://www.google.com/s2/favicons?domain=github.com&sz=64',
+    is_favorite: 1,
+    click_count: 42,
+    created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+  },
+  {
+    id: 'bm-mdn-web',
+    title: 'MDN Web Docs',
+    url: 'https://developer.mozilla.org',
+    description: 'The premier open resources for developers on Web standards: HTML5, CSS3, JavaScript, Web APIs.',
+    category: 'Reading',
+    tags: ['web', 'reference', 'html', 'javascript'],
+    favicon: 'https://www.google.com/s2/favicons?domain=developer.mozilla.org&sz=64',
+    is_favorite: 0,
+    click_count: 17,
+    created_at: new Date(Date.now() - 86400000 * 18).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 4).toISOString(),
+  }
+];
+
 export async function getSqliteDatabase(): Promise<Database> {
   if (dbInstance) {
     return dbInstance;
@@ -312,6 +420,7 @@ export async function getSqliteDatabase(): Promise<Database> {
   if (existingData && existingData.length > 0) {
     try {
       const db = new sqlModule.Database(existingData) as Database;
+      ensureBookmarksTable(db);
       dbInstance = db;
       return db;
     } catch (e) {
@@ -323,10 +432,62 @@ export async function getSqliteDatabase(): Promise<Database> {
   const db = new sqlModule.Database() as Database;
   initializeSchema(db);
   seedInitialData(db);
+  ensureBookmarksTable(db);
   dbInstance = db;
   await persistDatabase();
 
   return db;
+}
+
+function ensureBookmarksTable(db: Database) {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS bookmarks (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      url TEXT NOT NULL,
+      description TEXT,
+      category TEXT DEFAULT 'General',
+      tags TEXT,
+      favicon TEXT,
+      is_favorite INTEGER DEFAULT 0,
+      click_count INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_category ON bookmarks(category);
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_favorite ON bookmarks(is_favorite);
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_title ON bookmarks(title);
+  `);
+
+  try {
+    const res = db.exec('SELECT count(*) as count FROM bookmarks');
+    const count = (res[0]?.values[0]?.[0] as number) || 0;
+    if (count === 0) {
+      const stmt = db.prepare(`
+        INSERT INTO bookmarks (
+          id, title, url, description, category, tags, favicon, is_favorite, click_count, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const bm of SEED_BOOKMARKS) {
+        stmt.run([
+          bm.id || `bm-${Date.now()}-${Math.random()}`,
+          bm.title || '',
+          bm.url || '',
+          bm.description || '',
+          bm.category || 'General',
+          JSON.stringify(bm.tags || []),
+          bm.favicon || '',
+          bm.is_favorite ? 1 : 0,
+          bm.click_count || 0,
+          bm.created_at || new Date().toISOString(),
+          bm.updated_at || new Date().toISOString(),
+        ]);
+      }
+      stmt.free();
+    }
+  } catch (err) {
+    console.error('Error seeding bookmarks table', err);
+  }
 }
 
 function initializeSchema(db: Database) {
@@ -674,6 +835,41 @@ export async function deleteContact(id: string): Promise<void> {
   await persistDatabase();
 }
 
+export async function bulkDeleteContacts(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  const db = await getSqliteDatabase();
+  const placeholders = ids.map(() => '?').join(',');
+  db.run(`DELETE FROM activity_logs WHERE contact_id IN (${placeholders})`, ids);
+  db.run(`DELETE FROM contacts WHERE id IN (${placeholders})`, ids);
+  await persistDatabase();
+}
+
+export async function bulkUpdateCategory(ids: string[], newCategory: string): Promise<void> {
+  if (!ids.length) return;
+  const db = await getSqliteDatabase();
+  const placeholders = ids.map(() => '?').join(',');
+  const now = new Date().toISOString();
+  db.run(`UPDATE contacts SET category = ?, updated_at = ? WHERE id IN (${placeholders})`, [newCategory, now, ...ids]);
+
+  for (const id of ids) {
+    db.run(
+      `INSERT INTO activity_logs (id, contact_id, type, summary, timestamp) VALUES (?, ?, 'note', ?, ?)`,
+      ['act-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6), id, `Category changed to '${newCategory}' via bulk update`, now]
+    );
+  }
+  await persistDatabase();
+}
+
+export async function bulkToggleFavorite(ids: string[], isFavorite: boolean): Promise<void> {
+  if (!ids.length) return;
+  const db = await getSqliteDatabase();
+  const placeholders = ids.map(() => '?').join(',');
+  const now = new Date().toISOString();
+  const favVal = isFavorite ? 1 : 0;
+  db.run(`UPDATE contacts SET is_favorite = ?, updated_at = ? WHERE id IN (${placeholders})`, [favVal, now, ...ids]);
+  await persistDatabase();
+}
+
 export async function toggleFavorite(id: string, current: number): Promise<number> {
   const db = await getSqliteDatabase();
   const next = current ? 0 : 1;
@@ -855,3 +1051,276 @@ export async function executeRawSql(sql: string): Promise<SqlQueryResult> {
     };
   }
 }
+
+// ==========================================
+// FLUENT BOOKMARKS OPERATIONS
+// ==========================================
+
+export interface BookmarkFilterOptions {
+  category?: string;
+  searchQuery?: string;
+  sortField?: BookmarkSortField;
+  tag?: string;
+}
+
+export async function getBookmarks(options: BookmarkFilterOptions = {}): Promise<Bookmark[]> {
+  const db = await getSqliteDatabase();
+  const { category = 'All', searchQuery = '', sortField = 'recent', tag } = options;
+
+  let query = `SELECT * FROM bookmarks WHERE 1=1`;
+  const params: any[] = [];
+
+  if (category === 'Favorites') {
+    query += ` AND is_favorite = 1`;
+  } else if (category && category !== 'All') {
+    query += ` AND category = ?`;
+    params.push(category);
+  }
+
+  if (searchQuery.trim()) {
+    const term = `%${searchQuery.trim()}%`;
+    query += ` AND (title LIKE ? OR url LIKE ? OR description LIKE ? OR tags LIKE ? OR category LIKE ?)`;
+    params.push(term, term, term, term, term);
+  }
+
+  if (tag) {
+    query += ` AND tags LIKE ?`;
+    params.push(`%"${tag}"%`);
+  }
+
+  switch (sortField) {
+    case 'title_asc':
+      query += ` ORDER BY title ASC`;
+      break;
+    case 'title_desc':
+      query += ` ORDER BY title DESC`;
+      break;
+    case 'popular':
+      query += ` ORDER BY click_count DESC, updated_at DESC`;
+      break;
+    case 'category':
+      query += ` ORDER BY category ASC, title ASC`;
+      break;
+    case 'recent':
+    default:
+      query += ` ORDER BY created_at DESC`;
+      break;
+  }
+
+  const stmt = db.prepare(query);
+  if (params.length > 0) {
+    stmt.bind(params);
+  }
+
+  const bookmarks: Bookmark[] = [];
+  while (stmt.step()) {
+    const row = stmt.getAsObject() as any;
+    let parsedTags: string[] = [];
+    try {
+      if (typeof row.tags === 'string' && row.tags.startsWith('[')) {
+        parsedTags = JSON.parse(row.tags);
+      } else if (typeof row.tags === 'string') {
+        parsedTags = row.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+      }
+    } catch {
+      parsedTags = [];
+    }
+
+    bookmarks.push({
+      id: row.id,
+      title: row.title,
+      url: row.url,
+      description: row.description || '',
+      category: row.category || 'General',
+      tags: parsedTags,
+      favicon: row.favicon || '',
+      is_favorite: Number(row.is_favorite) || 0,
+      click_count: Number(row.click_count) || 0,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    });
+  }
+  stmt.free();
+  return bookmarks;
+}
+
+export async function createBookmark(
+  data: Omit<Bookmark, 'id' | 'created_at' | 'updated_at' | 'click_count'>
+): Promise<Bookmark> {
+  const db = await getSqliteDatabase();
+  const id = 'bm-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+  const now = new Date().toISOString();
+
+  let favicon = data.favicon;
+  if (!favicon && data.url) {
+    try {
+      const parsedUrl = new URL(data.url);
+      favicon = `https://www.google.com/s2/favicons?domain=${parsedUrl.hostname}&sz=64`;
+    } catch {
+      favicon = '';
+    }
+  }
+
+  const tagsJson = JSON.stringify(data.tags || []);
+
+  db.run(
+    `INSERT INTO bookmarks (
+      id, title, url, description, category, tags, favicon, is_favorite, click_count, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+    [
+      id,
+      data.title,
+      data.url,
+      data.description || '',
+      data.category || 'General',
+      tagsJson,
+      favicon || '',
+      data.is_favorite ? 1 : 0,
+      now,
+      now,
+    ]
+  );
+
+  await persistDatabase();
+
+  return {
+    id,
+    title: data.title,
+    url: data.url,
+    description: data.description || '',
+    category: data.category || 'General',
+    tags: data.tags || [],
+    favicon: favicon || '',
+    is_favorite: data.is_favorite ? 1 : 0,
+    click_count: 0,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+export async function updateBookmark(id: string, updates: Partial<Bookmark>): Promise<void> {
+  const db = await getSqliteDatabase();
+  const now = new Date().toISOString();
+
+  const setClauses: string[] = ['updated_at = ?'];
+  const values: any[] = [now];
+
+  if (updates.title !== undefined) {
+    setClauses.push('title = ?');
+    values.push(updates.title);
+  }
+  if (updates.url !== undefined) {
+    setClauses.push('url = ?');
+    values.push(updates.url);
+  }
+  if (updates.description !== undefined) {
+    setClauses.push('description = ?');
+    values.push(updates.description);
+  }
+  if (updates.category !== undefined) {
+    setClauses.push('category = ?');
+    values.push(updates.category);
+  }
+  if (updates.tags !== undefined) {
+    setClauses.push('tags = ?');
+    values.push(JSON.stringify(updates.tags));
+  }
+  if (updates.favicon !== undefined) {
+    setClauses.push('favicon = ?');
+    values.push(updates.favicon);
+  }
+  if (updates.is_favorite !== undefined) {
+    setClauses.push('is_favorite = ?');
+    values.push(updates.is_favorite ? 1 : 0);
+  }
+
+  values.push(id);
+  db.run(`UPDATE bookmarks SET ${setClauses.join(', ')} WHERE id = ?`, values);
+  await persistDatabase();
+}
+
+export async function deleteBookmark(id: string): Promise<void> {
+  const db = await getSqliteDatabase();
+  db.run(`DELETE FROM bookmarks WHERE id = ?`, [id]);
+  await persistDatabase();
+}
+
+export async function bulkDeleteBookmarks(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  const db = await getSqliteDatabase();
+  const placeholders = ids.map(() => '?').join(',');
+  db.run(`DELETE FROM bookmarks WHERE id IN (${placeholders})`, ids);
+  await persistDatabase();
+}
+
+export async function bulkUpdateBookmarkCategory(ids: string[], newCategory: string): Promise<void> {
+  if (!ids.length) return;
+  const db = await getSqliteDatabase();
+  const placeholders = ids.map(() => '?').join(',');
+  const now = new Date().toISOString();
+  db.run(`UPDATE bookmarks SET category = ?, updated_at = ? WHERE id IN (${placeholders})`, [
+    newCategory,
+    now,
+    ...ids,
+  ]);
+  await persistDatabase();
+}
+
+export async function bulkToggleBookmarkFavorite(ids: string[], isFavorite: boolean): Promise<void> {
+  if (!ids.length) return;
+  const db = await getSqliteDatabase();
+  const placeholders = ids.map(() => '?').join(',');
+  const now = new Date().toISOString();
+  db.run(`UPDATE bookmarks SET is_favorite = ?, updated_at = ? WHERE id IN (${placeholders})`, [
+    isFavorite ? 1 : 0,
+    now,
+    ...ids,
+  ]);
+  await persistDatabase();
+}
+
+export async function toggleBookmarkFavorite(id: string, current: number): Promise<number> {
+  const db = await getSqliteDatabase();
+  const next = current ? 0 : 1;
+  const now = new Date().toISOString();
+  db.run(`UPDATE bookmarks SET is_favorite = ?, updated_at = ? WHERE id = ?`, [next, now, id]);
+  await persistDatabase();
+  return next;
+}
+
+export async function incrementBookmarkClick(id: string): Promise<void> {
+  const db = await getSqliteDatabase();
+  db.run(`UPDATE bookmarks SET click_count = click_count + 1 WHERE id = ?`, [id]);
+  await persistDatabase();
+}
+
+export async function getBookmarkStats() {
+  const db = await getSqliteDatabase();
+  const countStmt = db.prepare(`
+    SELECT 
+      COUNT(*) as total,
+      SUM(CASE WHEN is_favorite = 1 THEN 1 ELSE 0 END) as favorites
+    FROM bookmarks
+  `);
+  let total = 0;
+  let favorites = 0;
+  if (countStmt.step()) {
+    const row = countStmt.getAsObject() as any;
+    total = Number(row.total) || 0;
+    favorites = Number(row.favorites) || 0;
+  }
+  countStmt.free();
+
+  const catStmt = db.prepare(`SELECT category, COUNT(*) as count FROM bookmarks GROUP BY category`);
+  const categoryCounts: Record<string, number> = {};
+  while (catStmt.step()) {
+    const row = catStmt.getAsObject() as any;
+    if (row.category) {
+      categoryCounts[row.category] = Number(row.count) || 0;
+    }
+  }
+  catStmt.free();
+
+  return { total, favorites, categoryCounts };
+}
+

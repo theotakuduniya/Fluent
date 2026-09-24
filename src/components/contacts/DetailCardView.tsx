@@ -19,9 +19,10 @@ import {
   FileText,
   Camera,
   Upload,
+  QrCode,
 } from 'lucide-react';
-import { Contact, ActivityLog } from '../types/contact';
-import { getActivityLogs, addActivityLog, updateContact } from '../services/db';
+import { Contact, ActivityLog } from '../../types/contact';
+import { getActivityLogs, addActivityLog, updateContact } from '../../services/db';
 import { motion } from 'motion/react';
 
 interface DetailCardViewProps {
@@ -29,6 +30,7 @@ interface DetailCardViewProps {
   onEdit: (contact: Contact) => void;
   onDelete: (contactId: string) => void;
   onToggleFavorite: (contactId: string, current: number) => void;
+  onShowQr?: (contact: Contact) => void;
   onClose?: () => void;
   onContactUpdated?: (updated: Contact) => void;
 }
@@ -75,6 +77,7 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
   onEdit,
   onDelete,
   onToggleFavorite,
+  onShowQr,
   onClose,
   onContactUpdated,
 }) => {
@@ -213,6 +216,17 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
             <span className="hidden sm:inline">Edit</span>
           </button>
 
+          {onShowQr && (
+            <button
+              onClick={() => onShowQr(contact)}
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md text-[#0078d4] dark:text-[#60cdff] hover:bg-[#0078d4]/10 dark:hover:bg-[#60cdff]/15 transition-colors"
+              title="Share or scan QR code"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">QR Code</span>
+            </button>
+          )}
+
           <button
             onClick={() => onDelete(contact.id)}
             className="p-1.5 rounded-md text-[#dc2626] hover:bg-red-500/10 transition-colors"
@@ -334,6 +348,18 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                     <MessageSquare className="w-3.5 h-3.5" />
                     <span>Message</span>
                   </a>
+                )}
+
+                {onShowQr && (
+                  <button
+                    type="button"
+                    onClick={() => onShowQr(contact)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-[#0078d4]/10 dark:bg-[#60cdff]/15 hover:bg-[#0078d4]/20 dark:hover:bg-[#60cdff]/25 text-[#0078d4] dark:text-[#60cdff] transition-all shadow-2xs"
+                    title="Generate QR code for mobile scan"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>QR Code</span>
+                  </button>
                 )}
 
                 <button

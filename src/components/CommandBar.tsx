@@ -10,6 +10,8 @@ import {
   Download,
   Upload,
   RefreshCw,
+  QrCode,
+  CheckSquare,
 } from 'lucide-react';
 import { ViewMode, SortField, Contact } from '../types/contact';
 
@@ -19,6 +21,7 @@ interface CommandBarProps {
   onEditContact: () => void;
   onDeleteContact: () => void;
   onToggleFavorite: () => void;
+  onShowQrContact?: () => void;
   viewMode: ViewMode;
   onChangeViewMode: (mode: ViewMode) => void;
   sortField: SortField;
@@ -26,6 +29,8 @@ interface CommandBarProps {
   onExportSqlite: () => void;
   onImportSqlite: (file: File) => void;
   onResetData: () => void;
+  isMultiSelectActive?: boolean;
+  onToggleSelectAll?: () => void;
 }
 
 export const CommandBar: React.FC<CommandBarProps> = ({
@@ -34,6 +39,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
   onEditContact,
   onDeleteContact,
   onToggleFavorite,
+  onShowQrContact,
   viewMode,
   onChangeViewMode,
   sortField,
@@ -41,6 +47,8 @@ export const CommandBar: React.FC<CommandBarProps> = ({
   onExportSqlite,
   onImportSqlite,
   onResetData,
+  isMultiSelectActive = false,
+  onToggleSelectAll,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,8 +76,24 @@ export const CommandBar: React.FC<CommandBarProps> = ({
           <span>New contact</span>
         </button>
 
-        {/* Selected Contact context buttons */}
-        {selectedContact && (
+        {/* Quick Multi-select button */}
+        {onToggleSelectAll && (
+          <button
+            onClick={onToggleSelectAll}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+              isMultiSelectActive
+                ? 'bg-[#0078d4]/10 dark:bg-[#60cdff]/15 text-[#0078d4] dark:text-[#60cdff]'
+                : 'text-[#27272a] dark:text-[#e4e4e7] hover:bg-black/5 dark:hover:bg-white/5'
+            }`}
+            title="Select all contacts for bulk operations (Ctrl+A)"
+          >
+            <CheckSquare className="w-3.5 h-3.5" />
+            <span>{isMultiSelectActive ? 'Selecting' : 'Select all'}</span>
+          </button>
+        )}
+
+        {/* Selected Contact context buttons (when not in multi-select) */}
+        {!isMultiSelectActive && selectedContact && (
           <>
             <button
               onClick={onEditContact}
@@ -77,6 +101,17 @@ export const CommandBar: React.FC<CommandBarProps> = ({
             >
               <span>Edit</span>
             </button>
+
+            {onShowQrContact && (
+              <button
+                onClick={onShowQrContact}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-md text-[#0078d4] dark:text-[#60cdff] hover:bg-[#0078d4]/10 dark:hover:bg-[#60cdff]/15 transition-colors"
+                title="Generate QR code to scan with mobile"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>QR Code</span>
+              </button>
+            )}
 
             <button
               onClick={onToggleFavorite}

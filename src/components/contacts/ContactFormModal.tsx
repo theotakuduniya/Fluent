@@ -14,7 +14,7 @@ import {
   Image as ImageIcon,
   Trash2,
 } from 'lucide-react';
-import { Contact } from '../types/contact';
+import { Contact } from '../../types/contact';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ContactFormModalProps {
