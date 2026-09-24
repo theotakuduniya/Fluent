@@ -55,7 +55,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
   };
 
   return (
-    <div className="h-11 win-acrylic flex items-center justify-between px-3 border-b win-border-subtle select-none shrink-0 gap-2 overflow-x-auto">
+    <div className="h-11 bg-white dark:bg-[#202020] flex items-center justify-between px-3 border-b border-black/[0.08] dark:border-white/[0.08] select-none shrink-0 gap-2 overflow-x-auto">
       {/* Left zone: Contact Actions */}
       <div className="flex items-center gap-1.5 shrink-0">
         {/* + New Contact Primary Button */}
@@ -73,17 +73,17 @@ export const CommandBar: React.FC<CommandBarProps> = ({
           <>
             <button
               onClick={onEditContact}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md text-[#333] dark:text-[#ddd] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-md text-[#27272a] dark:text-[#e4e4e7] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
             >
               <span>Edit</span>
             </button>
 
             <button
               onClick={onToggleFavorite}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                 selectedContact.is_favorite
                   ? 'text-amber-500 hover:bg-amber-500/10'
-                  : 'text-[#555] dark:text-[#ccc] hover:bg-black/5 dark:hover:bg-white/5'
+                  : 'text-[#52525b] dark:text-[#d4d4d8] hover:bg-black/5 dark:hover:bg-white/5'
               }`}
               title={selectedContact.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
             >
@@ -95,7 +95,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
 
             <button
               onClick={onDeleteContact}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md text-[#c42b1c] hover:bg-red-500/10 transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-md text-[#dc2626] hover:bg-red-500/10 transition-colors"
               title="Delete this contact"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -108,36 +108,36 @@ export const CommandBar: React.FC<CommandBarProps> = ({
       {/* Right zone: View Mode Switcher, Sort & SQLite Data Utilities */}
       <div className="flex items-center gap-1.5 shrink-0">
         {/* Sort selector */}
-        <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-md px-2 py-1">
-          <ArrowUpDown className="w-3 h-3 text-[#777] dark:text-[#999]" />
+        <div className="flex items-center gap-1 bg-[#f4f5f7] dark:bg-white/5 rounded-md px-2 py-1">
+          <ArrowUpDown className="w-3 h-3 text-[#71717a] dark:text-[#a1a1aa]" />
           <select
             value={sortField}
             onChange={(e) => onChangeSortField(e.target.value as SortField)}
-            className="bg-transparent text-xs text-[#333] dark:text-[#ddd] focus:outline-none cursor-pointer pr-1"
+            className="bg-transparent text-xs text-[#27272a] dark:text-[#e4e4e7] focus:outline-none cursor-pointer pr-1 font-medium"
           >
-            <option value="name_asc" className="dark:bg-[#2c2c2c] dark:text-white">
+            <option value="name_asc" className="bg-white dark:bg-[#2c2c2c] dark:text-white">
               Name (A to Z)
             </option>
-            <option value="name_desc" className="dark:bg-[#2c2c2c] dark:text-white">
+            <option value="name_desc" className="bg-white dark:bg-[#2c2c2c] dark:text-white">
               Name (Z to A)
             </option>
-            <option value="company" className="dark:bg-[#2c2c2c] dark:text-white">
+            <option value="company" className="bg-white dark:bg-[#2c2c2c] dark:text-white">
               Company
             </option>
-            <option value="recent" className="dark:bg-[#2c2c2c] dark:text-white">
+            <option value="recent" className="bg-white dark:bg-[#2c2c2c] dark:text-white">
               Recently Updated
             </option>
           </select>
         </div>
 
         {/* View mode segmented switcher */}
-        <div className="flex items-center bg-black/5 dark:bg-white/5 p-0.5 rounded-md">
+        <div className="flex items-center bg-[#f4f5f7] dark:bg-white/5 p-0.5 rounded-md">
           <button
             onClick={() => onChangeViewMode('cards')}
             className={`p-1.5 rounded text-xs transition-colors ${
               viewMode === 'cards'
                 ? 'bg-white dark:bg-[#383838] text-[#0078d4] dark:text-[#60cdff] shadow-xs'
-                : 'text-[#666] dark:text-[#aaa] hover:text-[#222] dark:hover:text-white'
+                : 'text-[#71717a] dark:text-[#a1a1aa] hover:text-[#18181b] dark:hover:text-white'
             }`}
             title="Card Grid View"
           >
@@ -148,9 +148,9 @@ export const CommandBar: React.FC<CommandBarProps> = ({
             className={`p-1.5 rounded text-xs transition-colors ${
               viewMode === 'split'
                 ? 'bg-white dark:bg-[#383838] text-[#0078d4] dark:text-[#60cdff] shadow-xs'
-                : 'text-[#666] dark:text-[#aaa] hover:text-[#222] dark:hover:text-white'
+                : 'text-[#71717a] dark:text-[#a1a1aa] hover:text-[#18181b] dark:hover:text-white'
             }`}
-            title="Split Detailed View"
+            title="Split Master-Detail View"
           >
             <Columns2 className="w-3.5 h-3.5" />
           </button>
@@ -159,51 +159,50 @@ export const CommandBar: React.FC<CommandBarProps> = ({
             className={`p-1.5 rounded text-xs transition-colors ${
               viewMode === 'table'
                 ? 'bg-white dark:bg-[#383838] text-[#0078d4] dark:text-[#60cdff] shadow-xs'
-                : 'text-[#666] dark:text-[#aaa] hover:text-[#222] dark:hover:text-white'
+                : 'text-[#71717a] dark:text-[#a1a1aa] hover:text-[#18181b] dark:hover:text-white'
             }`}
-            title="Table View"
+            title="Data Table View"
           >
             <TableIcon className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Vertical divider */}
-        <div className="w-px h-5 bg-black/10 dark:bg-white/10 mx-1" />
+        <div className="h-4 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
 
-        {/* Export SQLite File */}
+        {/* SQLite File Export/Import */}
         <button
           onClick={onExportSqlite}
-          className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md text-[#444] dark:text-[#ccc] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-          title="Export current SQLite database (.sqlite)"
+          className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md text-[#52525b] dark:text-[#d4d4d8] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+          title="Backup and download SQLite database (.sqlite file)"
         >
-          <Download className="w-3.5 h-3.5" />
+          <Download className="w-3 h-3 text-[#71717a] dark:text-[#a1a1aa]" />
           <span className="hidden sm:inline">Export</span>
         </button>
 
-        {/* Import SQLite File */}
         <input
-          type="file"
           ref={fileInputRef}
+          type="file"
+          accept=".sqlite,.db"
           onChange={handleFileChange}
-          accept=".sqlite,.db,.sqlite3"
           className="hidden"
         />
+
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md text-[#444] dark:text-[#ccc] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-          title="Import an existing SQLite database file"
+          className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md text-[#52525b] dark:text-[#d4d4d8] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+          title="Import SQLite database file (.sqlite)"
         >
-          <Upload className="w-3.5 h-3.5" />
+          <Upload className="w-3 h-3 text-[#71717a] dark:text-[#a1a1aa]" />
           <span className="hidden sm:inline">Import</span>
         </button>
 
-        {/* Reset Demo Data */}
         <button
           onClick={onResetData}
-          className="p-1.5 text-xs rounded-md text-[#666] dark:text-[#aaa] hover:text-[#222] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-          title="Reset to default seed contacts"
+          className="p-1.5 text-xs rounded-md text-[#71717a] hover:text-[#18181b] dark:text-[#a1a1aa] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+          title="Reset database to default seed data"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <RefreshCw className="w-3 h-3" />
         </button>
       </div>
     </div>

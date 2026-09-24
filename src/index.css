@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "react-windows-ui/icons/winui-icons.min.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --win-accent: #0078d4;

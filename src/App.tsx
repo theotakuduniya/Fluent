@@ -6,7 +6,6 @@ import { ContactCard } from './components/ContactCard';
 import { DetailCardView } from './components/DetailCardView';
 import { ContactTableView } from './components/ContactTableView';
 import { ContactFormModal } from './components/ContactFormModal';
-import { SqliteConsoleModal } from './components/SqliteConsoleModal';
 import { DeleteDialog } from './components/DeleteDialog';
 import { InfoBar, ToastNotice } from './components/InfoBar';
 import { Contact, ViewMode, SortField } from './types/contact';
@@ -21,7 +20,7 @@ import {
   importSqliteBinary,
   resetDatabaseToDefault,
 } from './services/db';
-import { Users, Search, UserPlus, ArrowLeft } from 'lucide-react';
+import { Users, UserPlus, ArrowLeft } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 export default function App() {
@@ -35,14 +34,13 @@ export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('fluent_dark_mode');
     if (saved !== null) return saved === 'true';
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return false; // Default to crisp Windows 11 Light Mode
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Modals state
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
-  const [isSqlConsoleOpen, setIsSqlConsoleOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
 
   // Database stats state
@@ -66,12 +64,16 @@ export default function App() {
     }, 3500);
   };
 
-  // Sync dark mode class
+  // Sync dark mode class and theme attribute
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+      document.documentElement.setAttribute('data-theme', 'light');
     }
     localStorage.setItem('fluent_dark_mode', String(darkMode));
   }, [darkMode]);
@@ -121,11 +123,11 @@ export default function App() {
   const handleSaveContact = async (contactData: any) => {
     if (contactData.id) {
       const updated = await updateContact(contactData);
-      addToast('success', `Updated "${updated.display_name}" in SQLite storage`);
+      addToast('success', `Updated "${updated.display_name}"`);
     } else {
       const created = await createContact(contactData);
       setSelectedContactId(created.id);
-      addToast('success', `Added "${created.display_name}" to SQLite storage`);
+      addToast('success', `Added "${created.display_name}"`);
     }
     await refreshData();
   };
@@ -134,7 +136,7 @@ export default function App() {
     if (!contactToDelete) return;
     try {
       await deleteContact(contactToDelete.id);
-      addToast('info', `Deleted "${contactToDelete.display_name}" from SQLite`);
+      addToast('info', `Deleted "${contactToDelete.display_name}"`);
       if (selectedContactId === contactToDelete.id) {
         setSelectedContactId(null);
       }
@@ -200,7 +202,6 @@ export default function App() {
   // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // If typing inside an input or textarea, ignore
       const activeTag = document.activeElement?.tagName.toLowerCase();
       if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
         return;
@@ -218,16 +219,14 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#f3f3f3] dark:bg-[#202020] text-[#1c1c1c] dark:text-[#f3f3f3]">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#f4f5f7] dark:bg-[#1a1a1a] text-[#18181b] dark:text-[#f4f4f5]">
       {/* 1. Windows 11 Fluent TitleBar */}
       <TitleBar
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onOpenSqlConsole={() => setIsSqlConsoleOpen(true)}
         contactCount={dbStats.total}
-        dbByteSize={dbStats.byteSize}
       />
 
       {/* Main Workspace Frame */}
@@ -245,15 +244,13 @@ export default function App() {
             setEditingContact(null);
             setIsFormModalOpen(true);
           }}
-          onOpenSqlConsole={() => setIsSqlConsoleOpen(true)}
           totalContacts={dbStats.total}
           favoriteCount={dbStats.favorites}
           categoryCounts={categoryCounts}
-          sqliteVersion={dbStats.sqliteVersion}
         />
 
         {/* 3. Main Center Content Pane */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#f9f9f9]/50 dark:bg-[#1f1f1f]/50">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#f4f5f7] dark:bg-[#1a1a1a]">
           {/* Windows Fluent CommandBar */}
           <CommandBar
             onNewContact={() => {
@@ -292,8 +289,8 @@ export default function App() {
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center space-y-2">
                   <div className="w-6 h-6 border-2 border-[#0078d4] border-t-transparent rounded-full animate-spin mx-auto" />
-                  <p className="text-xs text-[#777] dark:text-[#999] font-mono">
-                    Initializing SQLite Local Database...
+                  <p className="text-xs text-[#71717a] dark:text-[#a1a1aa] font-mono">
+                    Loading contacts...
                   </p>
                 </div>
               </div>
@@ -301,15 +298,15 @@ export default function App() {
               /* Empty State */
               <div className="flex-1 flex items-center justify-center p-8">
                 <div className="max-w-sm text-center space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mx-auto text-[#777]">
+                  <div className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mx-auto text-[#71717a]">
                     <Users className="w-6 h-6" />
                   </div>
-                  <h3 className="text-sm font-semibold text-[#1c1c1c] dark:text-[#f3f3f3]">
+                  <h3 className="text-sm font-bold text-[#18181b] dark:text-[#f4f4f5]">
                     {searchQuery ? 'No matching contacts found' : 'No contacts in this category'}
                   </h3>
-                  <p className="text-xs text-[#666] dark:text-[#aaa]">
+                  <p className="text-xs text-[#52525b] dark:text-[#a1a1aa]">
                     {searchQuery
-                      ? `No contacts matched "${searchQuery}". Clear your search query or add a new record to SQLite.`
+                      ? `No contacts matched "${searchQuery}". Clear your search query or add a new record.`
                       : 'Get started by creating your first contact entry or reset to demo data.'}
                   </p>
                   <button
@@ -350,9 +347,9 @@ export default function App() {
               /* 2. Split Master-Detail View */
               <div className="flex-1 flex w-full h-full min-h-0">
                 {/* Master list */}
-                <div className="w-80 md:w-96 border-r win-border-subtle flex flex-col h-full overflow-y-auto p-3 space-y-2 shrink-0">
-                  <div className="px-1 text-[11px] font-mono text-[#888]">
-                    {contacts.length} {contacts.length === 1 ? 'contact' : 'contacts'} in SQLite
+                <div className="w-80 md:w-96 border-r border-black/[0.08] dark:border-white/[0.08] bg-[#f8f9fa] dark:bg-[#1e1e1e] flex flex-col h-full overflow-y-auto p-3 space-y-2 shrink-0">
+                  <div className="px-1 text-[11px] font-mono text-[#71717a] dark:text-[#a1a1aa]">
+                    {contacts.length} {contacts.length === 1 ? 'contact' : 'contacts'}
                   </div>
                   {contacts.map((c) => (
                     <ContactCard
@@ -383,7 +380,7 @@ export default function App() {
                       }}
                     />
                   ) : (
-                    <div className="h-full flex items-center justify-center text-xs text-[#888]">
+                    <div className="h-full flex items-center justify-center text-xs text-[#71717a] dark:text-[#a1a1aa]">
                       Select a contact to view detailed persona card
                     </div>
                   )}
@@ -442,10 +439,10 @@ export default function App() {
                 {/* Mobile Full Screen Detail Overlay */}
                 {selectedContact && (
                   <div className="lg:hidden fixed inset-0 z-40 bg-white dark:bg-[#202020] flex flex-col">
-                    <div className="h-10 px-3 flex items-center border-b win-border-subtle bg-[#f9f9f9] dark:bg-[#252525]">
+                    <div className="h-10 px-3 flex items-center border-b border-black/[0.08] dark:border-white/[0.08] bg-[#f8f9fa] dark:bg-[#252525]">
                       <button
                         onClick={() => setSelectedContactId(null)}
-                        className="flex items-center gap-1.5 text-xs text-[#0078d4] dark:text-[#60cdff] font-medium"
+                        className="flex items-center gap-1.5 text-xs text-[#0078d4] dark:text-[#60cdff] font-semibold"
                       >
                         <ArrowLeft className="w-3.5 h-3.5" />
                         <span>Back to contacts</span>
@@ -493,17 +490,6 @@ export default function App() {
         contactName={contactToDelete?.display_name || ''}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setContactToDelete(null)}
-      />
-
-      {/* SQLite Console & Inspector Modal */}
-      <SqliteConsoleModal
-        isOpen={isSqlConsoleOpen}
-        onClose={() => setIsSqlConsoleOpen(false)}
-        sqliteVersion={dbStats.sqliteVersion}
-        totalContacts={dbStats.total}
-        totalActivities={dbStats.activities}
-        dbByteSize={dbStats.byteSize}
-        onDataModified={refreshData}
       />
 
       {/* InfoBar Status Notifications */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface DeleteDialogProps {
@@ -33,26 +33,26 @@ export const DeleteDialog: React.FC<DeleteDialogProps> = ({
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#1c1c1c] dark:text-[#f3f3f3]">
+                <h3 className="text-sm font-bold text-[#18181b] dark:text-[#f4f4f5]">
                   Delete contact?
                 </h3>
-                <p className="text-xs text-[#666] dark:text-[#aaa] mt-1">
-                  Are you sure you want to delete <span className="font-semibold text-[#111] dark:text-white">"{contactName}"</span> from your SQLite local storage?
+                <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1 leading-relaxed">
+                  Are you sure you want to delete <span className="font-semibold text-[#18181b] dark:text-white">"{contactName}"</span>? This action cannot be undone.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="px-5 py-3 bg-[#f9f9f9]/80 dark:bg-[#242424]/80 border-t win-border-subtle flex items-center justify-end gap-2">
+          <div className="px-5 py-3 bg-[#fbfbfb] dark:bg-[#242424] border-t border-black/[0.08] dark:border-white/[0.08] flex items-center justify-end gap-2">
             <button
               onClick={onCancel}
-              className="px-3 py-1.5 text-xs font-medium rounded-md text-[#333] dark:text-[#ddd] hover:bg-black/5 dark:hover:bg-white/5 border border-black/10 dark:border-white/10 transition-colors"
+              className="px-3.5 py-1.5 text-xs font-semibold rounded-md text-[#27272a] dark:text-[#e4e4e7] hover:bg-black/5 dark:hover:bg-white/5 border border-black/10 dark:border-white/10 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-[#c42b1c] text-white hover:bg-[#a82315] transition-all shadow-xs active:scale-95"
+              className="px-3.5 py-1.5 text-xs font-semibold rounded-md bg-[#dc2626] text-white hover:bg-[#b91c1c] transition-all shadow-xs active:scale-95"
             >
               Delete
             </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Phone,
   Mail,
@@ -17,6 +17,8 @@ import {
   Plus,
   X,
   FileText,
+  Camera,
+  Upload,
 } from 'lucide-react';
 import { Contact, ActivityLog } from '../types/contact';
 import { getActivityLogs, addActivityLog, updateContact } from '../services/db';
@@ -29,6 +31,43 @@ interface DetailCardViewProps {
   onToggleFavorite: (contactId: string, current: number) => void;
   onClose?: () => void;
   onContactUpdated?: (updated: Contact) => void;
+}
+
+function resizeImageToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 400;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.88));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 export const DetailCardView: React.FC<DetailCardViewProps> = ({
@@ -46,9 +85,13 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
   const [newNoteType, setNewNoteType] = useState<ActivityLog['type']>('note');
   const [notesDraft, setNotesDraft] = useState(contact.notes || '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setNotesDraft(contact.notes || '');
+    setImageError(false);
     loadActivities();
   }, [contact.id]);
 
@@ -65,6 +108,29 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedField(fieldName);
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleDirectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      const updated = await updateContact({
+        ...contact,
+        avatar_url: dataUrl,
+      });
+      setImageError(false);
+      if (onContactUpdated) {
+        onContactUpdated(updated);
+      }
+    } catch (err) {
+      console.error('Error uploading photo', err);
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleSaveNotes = async () => {
@@ -115,14 +181,14 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 0.22, ease: [0.1, 0.9, 0.2, 1.0] }}
-      className="h-full flex flex-col bg-white dark:bg-[#252525] border-l win-border-subtle overflow-y-auto select-none"
+      className="h-full flex flex-col bg-white dark:bg-[#202020] border-l border-black/[0.08] dark:border-white/[0.08] overflow-y-auto select-none"
     >
       {/* Top Navigation / Action Bar */}
-      <div className="h-12 win-acrylic px-4 flex items-center justify-between border-b win-border-subtle shrink-0 sticky top-0 z-10">
-        <div className="flex items-center gap-1.5 text-xs text-[#666] dark:text-[#aaa]">
+      <div className="h-12 bg-white dark:bg-[#202020] px-4 flex items-center justify-between border-b border-black/[0.08] dark:border-white/[0.08] shrink-0 sticky top-0 z-10">
+        <div className="flex items-center gap-1.5 text-xs text-[#71717a] dark:text-[#a1a1aa]">
           <span>Contact Card</span>
           <span aria-hidden="true">·</span>
-          <span className="font-medium text-[#222] dark:text-[#eee]">{contact.category}</span>
+          <span className="font-semibold text-[#18181b] dark:text-[#f4f4f5]">{contact.category}</span>
         </div>
 
         <div className="flex items-center gap-1">
@@ -131,7 +197,7 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
             className={`p-1.5 rounded-md transition-colors ${
               contact.is_favorite
                 ? 'text-amber-500 hover:bg-amber-500/10'
-                : 'text-[#666] dark:text-[#aaa] hover:bg-black/5 dark:hover:bg-white/5'
+                : 'text-[#71717a] dark:text-[#a1a1aa] hover:bg-black/5 dark:hover:bg-white/5'
             }`}
             title={contact.is_favorite ? 'Remove favorite' : 'Add favorite'}
           >
@@ -140,7 +206,7 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
 
           <button
             onClick={() => onEdit(contact)}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md text-[#333] dark:text-[#ddd] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md text-[#27272a] dark:text-[#e4e4e7] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
             title="Edit contact details"
           >
             <Edit3 className="w-3.5 h-3.5" />
@@ -149,7 +215,7 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
 
           <button
             onClick={() => onDelete(contact.id)}
-            className="p-1.5 rounded-md text-[#c42b1c] hover:bg-red-500/10 transition-colors"
+            className="p-1.5 rounded-md text-[#dc2626] hover:bg-red-500/10 transition-colors"
             title="Delete contact"
           >
             <Trash2 className="w-4 h-4" />
@@ -158,7 +224,7 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded-md text-[#666] dark:text-[#aaa] hover:bg-black/5 dark:hover:bg-white/5 transition-colors ml-1"
+              className="p-1.5 rounded-md text-[#71717a] dark:text-[#a1a1aa] hover:bg-black/5 dark:hover:bg-white/5 transition-colors ml-1"
               title="Close card view"
             >
               <X className="w-4 h-4" />
@@ -168,68 +234,82 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
       </div>
 
       <div className="p-6 space-y-6 max-w-3xl">
+        {/* Hidden file input for photo upload directly from card */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleDirectPhotoUpload}
+          className="hidden"
+        />
+
         {/* Persona Header Card */}
-        <div className="win-card-surface rounded-xl p-6 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#282828] border border-black/[0.08] dark:border-white/[0.08] shadow-xs rounded-xl p-6 relative overflow-hidden">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-            {/* Persona Avatar */}
-            {contact.avatar_url ? (
-              <div className="relative w-24 h-24 rounded-full overflow-hidden shrink-0 border-2 border-white dark:border-[#383838] shadow-md">
-                <img
-                  src={contact.avatar_url}
-                  alt={contact.display_name}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
+            {/* Persona Avatar with Hover Change Photo */}
+            <div className="relative group shrink-0">
+              {contact.avatar_url && !imageError ? (
+                <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-white dark:border-[#383838] shadow-md">
+                  <img
+                    src={contact.avatar_url}
+                    alt={contact.display_name}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                    onError={() => setImageError(true)}
+                  />
+                </div>
+              ) : (
                 <div
                   style={{ backgroundColor: contact.avatar_color || '#0078d4' }}
-                  className="w-full h-full flex items-center justify-center text-white font-bold text-2xl -mt-24"
+                  className="w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-md border-2 border-white dark:border-[#383838]"
                 >
                   {initials}
                 </div>
-              </div>
-            ) : (
-              <div
-                style={{ backgroundColor: contact.avatar_color || '#0078d4' }}
-                className="w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-2xl shrink-0 shadow-md border-2 border-white dark:border-[#383838]"
+              )}
+
+              {/* Change photo button on hover */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-medium"
+                title="Change photo"
               >
-                {initials}
-              </div>
-            )}
+                <Camera className="w-5 h-5 mb-0.5" />
+                <span>Upload</span>
+              </button>
+            </div>
 
             {/* Persona Details */}
             <div className="flex-1 text-center sm:text-left min-w-0">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <h2 className="text-xl font-bold tracking-tight text-[#1c1c1c] dark:text-[#f3f3f3] truncate">
+                <h2 className="text-xl font-bold tracking-tight text-[#18181b] dark:text-[#f4f4f5] truncate">
                   {contact.display_name}
                 </h2>
-                <div className="text-xs text-[#555] dark:text-[#aaa] font-medium flex items-center justify-center sm:justify-start gap-1">
+                <div className="text-xs text-[#71717a] dark:text-[#a1a1aa] font-medium flex items-center justify-center sm:justify-start gap-1">
                   <span>{contact.category}</span>
                 </div>
               </div>
 
               {(contact.job_title || contact.company) && (
-                <p className="text-sm text-[#444] dark:text-[#bbb] mt-1 font-medium">
+                <p className="text-sm text-[#52525b] dark:text-[#d4d4d8] mt-1 font-medium">
                   {contact.job_title}
                   {contact.job_title && contact.company && ' at '}
-                  <span className="text-[#111] dark:text-[#eee]">{contact.company}</span>
+                  <span className="text-[#18181b] dark:text-[#f4f4f5] font-semibold">{contact.company}</span>
                 </p>
               )}
 
               {contact.department && (
-                <p className="text-xs text-[#666] dark:text-[#999] mt-0.5">
+                <p className="text-xs text-[#71717a] dark:text-[#a1a1aa] mt-0.5">
                   {contact.department}
                 </p>
               )}
 
               {/* Action Buttons: Call, Email, Message, Meet, Copy */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-4 pt-4 border-t border-black/6 dark:border-white/6">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-4 pt-4 border-t border-black/[0.08] dark:border-white/[0.08]">
                 {contact.phone && (
                   <a
                     href={`tel:${contact.phone}`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-[#0078d4] text-white hover:bg-[#106ebe] transition-all shadow-xs active:scale-95"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-[#0078d4] text-white hover:bg-[#106ebe] transition-all shadow-xs active:scale-95"
                   >
                     <Phone className="w-3.5 h-3.5" />
                     <span>Call</span>
@@ -239,7 +319,7 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                 {contact.email && (
                   <a
                     href={`mailto:${contact.email}`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-black/6 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#222] dark:text-[#eee] transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#18181b] dark:text-[#f4f4f5] transition-colors"
                   >
                     <Mail className="w-3.5 h-3.5" />
                     <span>Email</span>
@@ -249,25 +329,22 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                 {contact.phone && (
                   <a
                     href={`sms:${contact.phone}`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-black/6 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#222] dark:text-[#eee] transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#18181b] dark:text-[#f4f4f5] transition-colors"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
                     <span>Message</span>
                   </a>
                 )}
 
-                {contact.email && (
-                  <button
-                    onClick={() => {
-                      window.open(`https://teams.microsoft.com/l/chat/0/0?users=${contact.email}`, '_blank');
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-black/6 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#222] dark:text-[#eee] transition-colors"
-                    title="Start video call"
-                  >
-                    <Video className="w-3.5 h-3.5" />
-                    <span>Meet</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#18181b] dark:text-[#f4f4f5] transition-colors"
+                  title="Upload profile picture"
+                >
+                  <Upload className="w-3.5 h-3.5 text-[#0078d4] dark:text-[#60cdff]" />
+                  <span>Photo</span>
+                </button>
 
                 <button
                   onClick={() =>
@@ -276,7 +353,7 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                       'all'
                     )
                   }
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-black/6 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#222] dark:text-[#eee] transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#18181b] dark:text-[#f4f4f5] transition-colors"
                 >
                   {copiedField === 'all' ? (
                     <>
@@ -297,11 +374,11 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
 
         {/* Section 1: Contact Information Cards */}
         <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-[#666] dark:text-[#888] px-1">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#71717a] dark:text-[#a1a1aa] px-1">
             Contact Information
           </h3>
 
-          <div className="win-card-surface rounded-xl divide-y divide-black/6 dark:divide-white/6 overflow-hidden">
+          <div className="bg-white dark:bg-[#282828] border border-black/[0.08] dark:border-white/[0.08] shadow-xs rounded-xl divide-y divide-black/[0.07] dark:divide-white/[0.07] overflow-hidden">
             {/* Primary Phone */}
             {contact.phone && (
               <div className="p-3.5 flex items-center justify-between hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
@@ -310,8 +387,8 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                     <Phone className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-[#777] dark:text-[#999] block">Mobile Phone</span>
-                    <span className="text-xs font-medium font-mono tabular-nums text-[#111] dark:text-[#eee]">
+                    <span className="text-[11px] text-[#71717a] dark:text-[#a1a1aa] block">Mobile Phone</span>
+                    <span className="text-xs font-semibold font-mono tabular-nums text-[#18181b] dark:text-[#f4f4f5]">
                       {contact.phone}
                     </span>
                   </div>
@@ -319,7 +396,7 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleCopy(contact.phone, 'phone')}
-                    className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-[#666] dark:text-[#aaa]"
+                    className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-[#71717a] dark:text-[#a1a1aa]"
                     title="Copy phone"
                   >
                     {copiedField === 'phone' ? (
@@ -340,15 +417,15 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                     <Phone className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-[#777] dark:text-[#999] block">Work Phone</span>
-                    <span className="text-xs font-medium font-mono tabular-nums text-[#111] dark:text-[#eee]">
+                    <span className="text-[11px] text-[#71717a] dark:text-[#a1a1aa] block">Work Phone</span>
+                    <span className="text-xs font-semibold font-mono tabular-nums text-[#18181b] dark:text-[#f4f4f5]">
                       {contact.work_phone}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => handleCopy(contact.work_phone!, 'work_phone')}
-                  className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-[#666] dark:text-[#aaa]"
+                  className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-[#71717a] dark:text-[#a1a1aa]"
                 >
                   {copiedField === 'work_phone' ? (
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -367,15 +444,15 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                     <Mail className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-[#777] dark:text-[#999] block">Primary Email</span>
-                    <span className="text-xs font-medium text-[#111] dark:text-[#eee]">
+                    <span className="text-[11px] text-[#71717a] dark:text-[#a1a1aa] block">Primary Email</span>
+                    <span className="text-xs font-semibold text-[#18181b] dark:text-[#f4f4f5]">
                       {contact.email}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => handleCopy(contact.email, 'email')}
-                  className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-[#666] dark:text-[#aaa]"
+                  className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-[#71717a] dark:text-[#a1a1aa]"
                 >
                   {copiedField === 'email' ? (
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -394,15 +471,15 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                     <Mail className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-[#777] dark:text-[#999] block">Secondary Email</span>
-                    <span className="text-xs font-medium text-[#111] dark:text-[#eee]">
+                    <span className="text-[11px] text-[#71717a] dark:text-[#a1a1aa] block">Secondary Email</span>
+                    <span className="text-xs font-semibold text-[#18181b] dark:text-[#f4f4f5]">
                       {contact.secondary_email}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => handleCopy(contact.secondary_email!, 'sec_email')}
-                  className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-[#666] dark:text-[#aaa]"
+                  className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-[#71717a] dark:text-[#a1a1aa]"
                 >
                   {copiedField === 'sec_email' ? (
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -421,15 +498,15 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                     <MapPin className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-[#777] dark:text-[#999] block">Address</span>
-                    <span className="text-xs font-medium text-[#111] dark:text-[#eee]">
+                    <span className="text-[11px] text-[#71717a] dark:text-[#a1a1aa] block">Address</span>
+                    <span className="text-xs font-semibold text-[#18181b] dark:text-[#f4f4f5]">
                       {fullAddress}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => handleCopy(fullAddress, 'address')}
-                  className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-[#666] dark:text-[#aaa]"
+                  className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-[#71717a] dark:text-[#a1a1aa]"
                   title="Copy address"
                 >
                   {copiedField === 'address' ? (
@@ -449,12 +526,12 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                     <Globe className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-[#777] dark:text-[#999] block">Website</span>
+                    <span className="text-[11px] text-[#71717a] dark:text-[#a1a1aa] block">Website</span>
                     <a
                       href={contact.website}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs font-medium text-[#0078d4] dark:text-[#60cdff] hover:underline"
+                      className="text-xs font-semibold text-[#0078d4] dark:text-[#60cdff] hover:underline"
                     >
                       {contact.website}
                     </a>
@@ -470,8 +547,8 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                   <Calendar className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-[11px] text-[#777] dark:text-[#999] block">Birthday</span>
-                  <span className="text-xs font-medium text-[#111] dark:text-[#eee]">
+                  <span className="text-[11px] text-[#71717a] dark:text-[#a1a1aa] block">Birthday</span>
+                  <span className="text-xs font-semibold text-[#18181b] dark:text-[#f4f4f5]">
                     {contact.birthday}
                   </span>
                 </div>
@@ -483,27 +560,27 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
         {/* Section 2: Notes & Bio */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#666] dark:text-[#888]">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#71717a] dark:text-[#a1a1aa]">
               Notes
             </h3>
             {notesDraft !== (contact.notes || '') && (
               <button
                 onClick={handleSaveNotes}
                 disabled={isSavingNotes}
-                className="text-xs font-medium text-[#0078d4] dark:text-[#60cdff] hover:underline"
+                className="text-xs font-semibold text-[#0078d4] dark:text-[#60cdff] hover:underline"
               >
                 {isSavingNotes ? 'Saving to SQLite...' : 'Save Notes'}
               </button>
             )}
           </div>
 
-          <div className="win-card-surface rounded-xl p-3.5">
+          <div className="bg-white dark:bg-[#282828] border border-black/[0.08] dark:border-white/[0.08] shadow-xs rounded-xl p-3.5">
             <textarea
               value={notesDraft}
               onChange={(e) => setNotesDraft(e.target.value)}
               placeholder="Add personal notes, meeting topics, or background info..."
               rows={3}
-              className="w-full text-xs bg-transparent text-[#1c1c1c] dark:text-[#f3f3f3] focus:outline-none resize-none placeholder-[#777] dark:placeholder-[#888]"
+              className="w-full text-xs bg-transparent text-[#18181b] dark:text-[#f4f4f5] focus:outline-none resize-none placeholder-[#71717a] dark:placeholder-[#888]"
             />
           </div>
         </div>
@@ -512,17 +589,17 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#666] dark:text-[#888]">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#71717a] dark:text-[#a1a1aa]">
                 Activity & History
               </h3>
-              <span className="text-[11px] text-[#888] font-mono tabular-nums">
-                ({activities.length} records in SQLite)
+              <span className="text-[11px] text-[#71717a] dark:text-[#a1a1aa] font-mono tabular-nums">
+                ({activities.length} records)
               </span>
             </div>
 
             <button
               onClick={() => setIsAddingNote(!isAddingNote)}
-              className="flex items-center gap-1 text-xs font-medium text-[#0078d4] dark:text-[#60cdff] hover:underline"
+              className="flex items-center gap-1 text-xs font-semibold text-[#0078d4] dark:text-[#60cdff] hover:underline"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Log activity</span>
@@ -533,14 +610,14 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
           {isAddingNote && (
             <form
               onSubmit={handleAddActivity}
-              className="win-card-surface rounded-xl p-4 space-y-3 border-2 border-[#0078d4]/30"
+              className="bg-white dark:bg-[#282828] rounded-xl p-4 space-y-3 border-2 border-[#0078d4]"
             >
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-[#444] dark:text-[#bbb]">Type:</span>
+                <span className="text-xs font-semibold text-[#27272a] dark:text-[#d4d4d8]">Type:</span>
                 <select
                   value={newNoteType}
                   onChange={(e) => setNewNoteType(e.target.value as ActivityLog['type'])}
-                  className="text-xs bg-white dark:bg-[#333] border border-black/10 dark:border-white/10 rounded-md px-2 py-1 text-[#222] dark:text-[#eee]"
+                  className="text-xs bg-white dark:bg-[#333] border border-black/10 dark:border-white/10 rounded-md px-2 py-1 text-[#18181b] dark:text-[#f4f4f5]"
                 >
                   <option value="call">Phone Call</option>
                   <option value="email">Email</option>
@@ -555,7 +632,7 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                 onChange={(e) => setNewNoteText(e.target.value)}
                 placeholder="What happened during this touchpoint?"
                 rows={2}
-                className="w-full text-xs p-2 rounded-md bg-white dark:bg-[#333] border border-black/10 dark:border-white/10 text-[#222] dark:text-[#eee] focus:outline-none focus:border-[#0078d4]"
+                className="w-full text-xs p-2 rounded-md bg-[#f8f9fa] dark:bg-[#333] border border-black/10 dark:border-white/10 text-[#18181b] dark:text-[#f4f4f5] focus:outline-none focus:border-[#0078d4]"
                 autoFocus
               />
 
@@ -563,22 +640,22 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAddingNote(false)}
-                  className="px-3 py-1 text-xs rounded-md text-[#555] dark:text-[#ccc] hover:bg-black/5 dark:hover:bg-white/5"
+                  className="px-3 py-1 text-xs rounded-md text-[#52525b] dark:text-[#a1a1aa] hover:bg-black/5 dark:hover:bg-white/5"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1 text-xs font-medium rounded-md bg-[#0078d4] text-white hover:bg-[#106ebe]"
+                  className="px-3 py-1 text-xs font-semibold rounded-md bg-[#0078d4] text-white hover:bg-[#106ebe]"
                 >
-                  Save to SQLite
+                  Save Activity
                 </button>
               </div>
             </form>
           )}
 
           {/* Activity items list */}
-          <div className="win-card-surface rounded-xl divide-y divide-black/6 dark:divide-white/6 overflow-hidden">
+          <div className="bg-white dark:bg-[#282828] border border-black/[0.08] dark:border-white/[0.08] shadow-xs rounded-xl divide-y divide-black/[0.07] dark:divide-white/[0.07] overflow-hidden">
             {activities.length > 0 ? (
               activities.map((act) => {
                 const dateStr = new Date(act.timestamp).toLocaleDateString(undefined, {
@@ -599,14 +676,14 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium capitalize text-[#222] dark:text-[#eee]">
+                        <span className="text-xs font-semibold capitalize text-[#18181b] dark:text-[#f4f4f5]">
                           {act.type}
                         </span>
-                        <span className="text-[10px] font-mono text-[#888] tabular-nums">
+                        <span className="text-[10px] font-mono text-[#71717a] dark:text-[#a1a1aa] tabular-nums">
                           {dateStr}
                         </span>
                       </div>
-                      <p className="text-xs text-[#555] dark:text-[#bbb] mt-1 leading-relaxed">
+                      <p className="text-xs text-[#52525b] dark:text-[#d4d4d8] mt-1 leading-relaxed">
                         {act.summary}
                       </p>
                     </div>
@@ -614,8 +691,8 @@ export const DetailCardView: React.FC<DetailCardViewProps> = ({
                 );
               })
             ) : (
-              <div className="p-6 text-center text-xs text-[#888] dark:text-[#777]">
-                No logged activity yet. Click "Log activity" to save touchpoints to SQLite.
+              <div className="p-6 text-center text-xs text-[#71717a] dark:text-[#a1a1aa]">
+                No logged activity yet. Click "Log activity" to record touchpoints.
               </div>
             )}
           </div>

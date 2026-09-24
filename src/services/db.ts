@@ -479,17 +479,17 @@ export async function getContacts(
 
   switch (sortField) {
     case 'name_desc':
-      query += ` ORDER BY last_name DESC, first_name DESC`;
+      query += ` ORDER BY LOWER(SUBSTR(TRIM(COALESCE(NULLIF(first_name, ''), display_name, '')), 1, 1)) DESC, LOWER(TRIM(COALESCE(NULLIF(first_name, ''), display_name, ''))) DESC, LOWER(last_name) DESC`;
       break;
     case 'company':
-      query += ` ORDER BY company ASC, last_name ASC`;
+      query += ` ORDER BY LOWER(company) ASC, LOWER(TRIM(COALESCE(NULLIF(first_name, ''), display_name, ''))) ASC`;
       break;
     case 'recent':
       query += ` ORDER BY updated_at DESC`;
       break;
     case 'name_asc':
     default:
-      query += ` ORDER BY last_name ASC, first_name ASC`;
+      query += ` ORDER BY LOWER(SUBSTR(TRIM(COALESCE(NULLIF(first_name, ''), display_name, '')), 1, 1)) ASC, LOWER(TRIM(COALESCE(NULLIF(first_name, ''), display_name, ''))) ASC, LOWER(last_name) ASC`;
       break;
   }
 
@@ -500,6 +500,30 @@ export async function getContacts(
     contacts.push(stmt.getAsObject() as unknown as Contact);
   }
   stmt.free();
+
+  if (sortField === 'name_asc') {
+    contacts.sort((a, b) => {
+      const nameA = (a.first_name?.trim() || a.display_name?.trim() || '').trim();
+      const nameB = (b.first_name?.trim() || b.display_name?.trim() || '').trim();
+      const firstCharA = nameA.charAt(0).toLowerCase();
+      const firstCharB = nameB.charAt(0).toLowerCase();
+      if (firstCharA !== firstCharB) {
+        return firstCharA.localeCompare(firstCharB);
+      }
+      return nameA.localeCompare(nameB);
+    });
+  } else if (sortField === 'name_desc') {
+    contacts.sort((a, b) => {
+      const nameA = (a.first_name?.trim() || a.display_name?.trim() || '').trim();
+      const nameB = (b.first_name?.trim() || b.display_name?.trim() || '').trim();
+      const firstCharA = nameA.charAt(0).toLowerCase();
+      const firstCharB = nameB.charAt(0).toLowerCase();
+      if (firstCharA !== firstCharB) {
+        return firstCharB.localeCompare(firstCharA);
+      }
+      return nameB.localeCompare(nameA);
+    });
+  }
 
   return contacts;
 }
