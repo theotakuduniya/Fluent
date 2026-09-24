@@ -1,0 +1,6 @@
+{
+  "name": "Fluent Contacts - Windows UI",
+  "description": "Windows UI inspired Contacts application with Mica materials, fluid animations, responsive filtering sidebar, detailed persona card view, quick-add modal, and local SQLite data persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

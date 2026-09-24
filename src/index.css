@@ -1,0 +1,126 @@
+@import "tailwindcss";
+@import "react-windows-ui/icons/winui-icons.min.css";
+
+@layer base {
+  :root {
+    --win-accent: #0078d4;
+    --win-accent-hover: #106ebe;
+    --win-accent-light: #eff6fc;
+    --win-mica-bg: #f3f3f3;
+    --win-surface: #ffffff;
+    --win-surface-alt: #f9f9f9;
+    --win-border: rgba(0, 0, 0, 0.08);
+    --win-text-primary: #1b1b1b;
+    --win-text-secondary: #5c5c5c;
+    --win-text-tertiary: #8a8a8a;
+  }
+
+  .dark {
+    --win-accent: #60cdff;
+    --win-accent-hover: #4cc2ff;
+    --win-accent-light: rgba(96, 205, 255, 0.12);
+    --win-mica-bg: #202020;
+    --win-surface: #2b2b2b;
+    --win-surface-alt: #323232;
+    --win-border: rgba(255, 255, 255, 0.08);
+    --win-text-primary: #ffffff;
+    --win-text-secondary: #c5c5c5;
+    --win-text-tertiary: #929292;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", Roboto, sans-serif;
+    background-color: var(--win-mica-bg);
+    color: var(--win-text-primary);
+  }
+}
+
+/* Windows 11 Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 120, 0.25);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 120, 120, 0.45);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Fluent Materials */
+.win-mica {
+  background-color: rgba(243, 243, 243, 0.88);
+  backdrop-filter: blur(28px) saturate(140%);
+}
+
+.dark .win-mica {
+  background-color: rgba(32, 32, 32, 0.88);
+  backdrop-filter: blur(28px) saturate(140%);
+}
+
+.win-acrylic {
+  background-color: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+.dark .win-acrylic {
+  background-color: rgba(43, 43, 43, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+.win-card-surface {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.dark .win-card-surface {
+  background: #2b2b2b;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* Windows 11 Elevation & Border Subtlety */
+.win-border-subtle {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.dark .win-border-subtle {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Windows 11 Active Navigation Left Pill */
+.win-nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: 9999px;
+  background-color: var(--win-accent);
+}
+
+/* Focus styles */
+.win-focus-ring:focus-visible {
+  outline: 2px solid var(--win-accent);
+  outline-offset: 1px;
+}
